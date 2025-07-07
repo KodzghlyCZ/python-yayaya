@@ -1,0 +1,8 @@
+[project]
+name = "yayaya"
+version = "0.1.0"
+description = "Centralized YAML config loader with ease"
+authors = [
+    { name="Karel Matějovský" }
+]
+dependencies = ["pyyaml"]
