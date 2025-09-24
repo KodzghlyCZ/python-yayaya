@@ -1,6 +1,6 @@
 [project]
 name = "yayaya"
-version = "0.1.0"
+version = "0.1.1"
 description = "Centralized YAML config loader with ease"
 authors = [
     { name="Karel Matějovský" }
