@@ -1,4 +1,4 @@
-name: Publish to GitLab PyPI
+name: Publish to GitHub Packages
 
 on:
   release:
@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -27,18 +28,14 @@ jobs:
       - name: Build distributions
         run: python -m build
 
-      - name: Upload to GitLab PyPI
+      - name: Upload to GitHub Packages
         env:
-          TWINE_REPOSITORY_URL: ${{ secrets.GITLAB_PYPI_URL }}
-          TWINE_USERNAME: ${{ secrets.GITLAB_PYPI_USERNAME || '__token__' }}
-          TWINE_PASSWORD: ${{ secrets.GITLAB_PYPI_PASSWORD || secrets.GITLAB_PYPI_TOKEN }}
+          TWINE_REPOSITORY_URL: https://pypi.pkg.github.com/${{ github.repository_owner }}
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -z "${TWINE_REPOSITORY_URL}" ]; then
-            echo "Missing secret GITLAB_PYPI_URL"
-            exit 1
-          fi
           if [ -z "${TWINE_PASSWORD}" ]; then
-            echo "Missing secret GITLAB_PYPI_PASSWORD (or GITLAB_PYPI_TOKEN)"
+            echo "Missing GITHUB_TOKEN"
             exit 1
           fi
           python -m twine upload --non-interactive dist/*
