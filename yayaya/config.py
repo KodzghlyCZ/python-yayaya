@@ -1,7 +1,13 @@
+from __future__ import annotations
+
 import os
-from typing import Any
+import re
+from typing import Any, Mapping, Optional
 
 import yaml
+
+# ${VAR_NAME} — VAR_NAME matches common environment variable identifiers.
+_ENV_BRACE_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
 
 class ConfigError(Exception):
@@ -24,6 +30,34 @@ _config = None
 _config_path = None
 
 
+def expand_env_placeholders(value: Any, *, environ: Optional[Mapping[str, str]] = None) -> Any:
+    """
+    Recursively expand ``${VAR_NAME}`` placeholders in strings using the process environment.
+
+    - Walks dicts and lists produced by ``yaml.safe_load``.
+    - Leaves scalars other than ``str`` unchanged (int, float, bool, None).
+    - If a referenced variable is unset, substitutes the empty string.
+
+    Pass ``environ`` to use a custom mapping (e.g. tests); defaults to ``os.environ``.
+    """
+    env: Mapping[str, str] = os.environ if environ is None else environ
+
+    def _replace_str(s: str) -> str:
+        def repl(m: Any) -> str:
+            v = env.get(m.group(1), "")
+            return v if isinstance(v, str) else str(v)
+
+        return _ENV_BRACE_PATTERN.sub(repl, s)
+
+    if isinstance(value, str):
+        return _replace_str(value)
+    if isinstance(value, dict):
+        return {k: expand_env_placeholders(v, environ=env) for k, v in value.items()}
+    if isinstance(value, list):
+        return [expand_env_placeholders(item, environ=env) for item in value]
+    return value
+
+
 def _load(path):
     global _config, _config_path
     full_path = os.path.abspath(path)
@@ -31,7 +65,8 @@ def _load(path):
         raise ConfigFileNotFoundError(f"Config file not found: {full_path}")
     try:
         with open(full_path, "r", encoding="utf-8") as f:
-            _config = yaml.safe_load(f) or {}
+            raw = yaml.safe_load(f) or {}
+        _config = expand_env_placeholders(raw)
     except Exception as e:
         raise ConfigError(f"Failed to load config file: {e}")
     _config_path = full_path
