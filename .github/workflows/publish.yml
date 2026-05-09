@@ -1,15 +1,25 @@
-# Publish yayaya to PyPI (https://pypi.org/project/yayaya/)
+# Publish yayaya to PyPI — https://pypi.org/project/yayaya/
 #
-# Setup (once):
-# 1. PyPI → Your account (or project) → Publishing → "Add a pending publisher" → GitHub
-#    - Repository, workflow: publish.yml, branch: main (or default). Leave "environment"
-#      blank unless you add `environment: pypi` to the publish-pypi job and create that
-#      environment in GitHub with the same name on PyPI.
-# 2. Optional: add `environment: { name: pypi, url: https://pypi.org/p/yayaya }` under
-#    publish-pypi, create that environment in GitHub (e.g. required reviewers), and set the
-#    same environment name in PyPI's trusted publisher settings.
+# Trusted publishing (OIDC) must match on GitHub AND PyPI. If PyPI shows
+# `invalid-publisher` / `environment: MISSING` in the debug claims, you almost
+# always have one of:
 #
-# Triggers: GitHub Release "published", or manual workflow_dispatch.
+#   A) PyPI "Workflow environment name" is set (e.g. pypi) but this job had no
+#      `environment:` → OIDC omits the claim → PyPI rejects. Fix: keep the
+#      `environment: pypi` block below and use the SAME name on PyPI.
+#
+#   B) PyPI environment is blank but owner / repository / workflow filename
+#      don't match exactly (typo, wrong repo, or `Publish.yml` vs `publish.yml`).
+#
+# Setup:
+# 1. GitHub repo → Settings → Environments → New → name: pypi (optional: protection rules).
+# 2. PyPI → project yayaya → Manage → Publishing → GitHub trusted publisher:
+#      Owner: KodzghlyCZ, Repository: python-yayaya, Workflow: publish.yml,
+#      Environment name: pypi (must match the job below exactly).
+# 3. Push this workflow, then run from a release or workflow_dispatch.
+#
+# If you insist on no GitHub Environment, remove the `environment:` block below
+# and clear "Workflow environment name" on PyPI for this publisher.
 
 name: Publish to PyPI
 
@@ -21,6 +31,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -42,8 +54,12 @@ jobs:
   publish-pypi:
     needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/yayaya/
     permissions:
       id-token: write
+      contents: read
     steps:
       - uses: actions/download-artifact@v4
         with:
