@@ -2,7 +2,7 @@
 
 > *„Ja, ja, **YAML** schon wieder.“* — Every backend dev in Berlin, probably.
 
-**yayaya** is a tiny helper for **Y**et **A**nother **YA**ml **YA**rd (look, the letters lined up and we ran with it). It loads one YAML file, lets you read nested keys with dot notation, and expands `${ENV_VAR}` placeholders so secrets can live in the environment where they belong—not committed next to your `instruction:` prompts.
+**yayaya** is a tiny helper for **Y**et **A**nother **YA**ml **YA**rd (look, the letters lined up and we ran with it). It loads one YAML file—or several merged in order—lets you read nested keys with dot notation, and expands `${ENV_VAR}` placeholders so secrets can live in the environment where they belong—not committed next to your `instruction:` prompts.
 
 No framework. No magic beans. Just `pyyaml` and the sound of your PM saying *jajaja* when you tell them config is “basically done.”
 
@@ -27,6 +27,16 @@ db_url = get("database.url", required=True)
 if contains("features.experimental"):
     ...
 ```
+
+### Multiple files (layered config)
+
+Pass a list: **earlier files are the base, later ones override**. Nested dicts are deep-merged; scalars and lists are replaced entirely by the newer file. Expansion runs **once** on the merged result.
+
+```python
+init(["/etc/myapp/defaults.yaml", "/instance/config.yaml", "/instance/local.yaml"])
+```
+
+Useful for defaults + tenant config + secrets-by-path without copy-pasting huge trees.
 
 ## `${ENV_VAR}` expansion
 
@@ -61,11 +71,13 @@ data = expand_env_placeholders({"x": "${HOME}"}, environ=os.environ)
 
 | Function | Purpose |
 | -------- | ------- |
-| `init(path)` | Load YAML from `path` (absolute or relative). |
+| `init(path)` | Load one YAML file, or `init([p1, p2, ...])` to merge left → right. |
 | `get(key, default=None, required=False)` | Dot-path lookup (`"db.pool.size"`). |
 | `contains(key)` | Whether the path exists. |
-| `reload_config()` | Re-read the same file (e.g. after deploy). |
-| `override_config_path(path)` | Switch file and load. |
+| `reload_config()` | Re-read the same path(s) in the same order. |
+| `override_config_path(path)` | Same as `init` (one path or a list). |
+| `config_paths()` | Absolute paths last passed to `init` / `override_config_path`. |
+| `deep_merge(a, b)` | Deep-merge two dict-like trees (lists replaced, not spliced). |
 | `expand_env_placeholders(value, environ=None)` | Recursive `${VAR}` substitution. |
 
 Exceptions (all subclass `ConfigError`): `ConfigNotLoadedError`, `ConfigFileNotFoundError`, `ConfigKeyNotFoundError`.

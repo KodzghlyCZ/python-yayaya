@@ -66,7 +66,7 @@ app:
                 else:
                     os.environ["YAYAYA_TEST_TOKEN"] = old
                 config._config = None
-                config._config_path = None
+                config._config_paths = None
         finally:
             os.unlink(path)
 

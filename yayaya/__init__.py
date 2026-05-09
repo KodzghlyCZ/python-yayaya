@@ -3,6 +3,8 @@ from .config import (
     ConfigNotLoadedError,
     ConfigFileNotFoundError,
     ConfigKeyNotFoundError,
+    config_paths,
+    deep_merge,
     expand_env_placeholders,
     init,
     get,
@@ -16,6 +18,8 @@ __all__ = [
     "ConfigNotLoadedError",
     "ConfigFileNotFoundError",
     "ConfigKeyNotFoundError",
+    "config_paths",
+    "deep_merge",
     "expand_env_placeholders",
     "init",
     "get",
@@ -23,5 +27,3 @@ __all__ = [
     "reload_config",
     "override_config_path",
 ]
-
-
